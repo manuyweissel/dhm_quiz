@@ -11,25 +11,24 @@ export default function ChatStage({
   revealDisabled,
   revealLabel,
 }) {
-  const chatWindowRef = useRef(null);
+  const chatStreamRef = useRef(null);
   const visibleMessages = item.messages.slice(0, roundState.chatStep);
   const revealVisible = roundState.revealed;
   const leftName = revealVisible ? item.left.name : "Unbekannt";
   const rightName = revealVisible ? item.right.name : "Unbekannt";
-  const hiddenClue = "Bleibt geheim, bis die Runde komplett aufgelöst ist.";
-  const leftClue = revealVisible ? item.left.clue : hiddenClue;
-  const rightClue = revealVisible ? item.right.clue : hiddenClue;
+  const leftClue = revealVisible ? item.left.clue : "";
+  const rightClue = revealVisible ? item.right.clue : "";
   const awardedTeam = progress.chatWinnerTeam ?? null;
 
   useEffect(() => {
-    const chatWindow = chatWindowRef.current;
+    const chatStream = chatStreamRef.current;
 
-    if (!chatWindow) {
+    if (!chatStream) {
       return;
     }
 
-    chatWindow.scrollTo({
-      top: chatWindow.scrollHeight,
+    chatStream.scrollTo({
+      top: chatStream.scrollHeight,
       behavior: visibleMessages.length > 1 ? "smooth" : "auto",
     });
   }, [visibleMessages.length, revealVisible, item.id]);
@@ -52,11 +51,17 @@ export default function ChatStage({
         <aside className={`chat-character-side left${revealVisible ? " is-visible" : ""}`}>
           <div className="chat-character-card team-left">
             <div className="chat-character-portrait">
-              {revealVisible ? initials(item.left.name) : "?"}
+              {revealVisible ? (
+                <PortraitContent imageSrc={item.left.imageSrc} name={item.left.name} />
+              ) : (
+                "?"
+              )}
             </div>
-            <span className="chat-character-role">Links</span>
-            <p className="chat-character-name">{leftName}</p>
-            <p className="chat-character-clue">{leftClue}</p>
+            <div className="chat-character-meta">
+              <p className="chat-character-name">{leftName}</p>
+              <span className="chat-character-role">Person A</span>
+              {leftClue ? <p className="chat-character-clue">{leftClue}</p> : null}
+            </div>
           </div>
         </aside>
 
@@ -81,25 +86,35 @@ export default function ChatStage({
             </div>
           </div>
 
-          <div ref={chatWindowRef} className="chat-window">
-            {visibleMessages.length ? (
-              visibleMessages.map((message, index) => (
-                <article key={`${message.side}-${index}`} className={`chat-bubble ${message.side}`}>
-                  <span className="speaker-line">
-                    {message.side === "left"
-                      ? revealVisible
-                        ? item.left.name
-                        : "Links"
-                      : revealVisible
-                        ? item.right.name
-                        : "Rechts"}
-                  </span>
-                  <p>{message.text}</p>
-                </article>
-              ))
-            ) : (
-              <div className="empty-state">Noch keine Nachricht gezeigt.</div>
-            )}
+          <div className="chat-window">
+            <div
+              ref={chatStreamRef}
+              className="chat-stream"
+              tabIndex={0}
+              role="region"
+              aria-label="Chatverlauf"
+            >
+              <div className={`chat-stream-content${visibleMessages.length ? "" : " is-empty"}`}>
+                {visibleMessages.length ? (
+                  visibleMessages.map((message, index) => (
+                    <article key={`${message.side}-${index}`} className={`chat-bubble ${message.side}`}>
+                      <span className="speaker-line">
+                        {message.side === "left"
+                          ? revealVisible
+                            ? item.left.name
+                            : "Person A"
+                          : revealVisible
+                            ? item.right.name
+                            : "Person B"}
+                      </span>
+                      <p>{message.text}</p>
+                    </article>
+                  ))
+                ) : (
+                  <div className="empty-state">Noch keine Nachricht gezeigt.</div>
+                )}
+              </div>
+            </div>
           </div>
 
           {!revealVisible ? (
@@ -119,11 +134,17 @@ export default function ChatStage({
         <aside className={`chat-character-side right${revealVisible ? " is-visible" : ""}`}>
           <div className="chat-character-card team-right">
             <div className="chat-character-portrait">
-              {revealVisible ? initials(item.right.name) : "?"}
+              {revealVisible ? (
+                <PortraitContent imageSrc={item.right.imageSrc} name={item.right.name} />
+              ) : (
+                "?"
+              )}
             </div>
-            <span className="chat-character-role">Rechts</span>
-            <p className="chat-character-name">{rightName}</p>
-            <p className="chat-character-clue">{rightClue}</p>
+            <div className="chat-character-meta">
+              <p className="chat-character-name">{rightName}</p>
+              <span className="chat-character-role">Person B</span>
+              {rightClue ? <p className="chat-character-clue">{rightClue}</p> : null}
+            </div>
           </div>
         </aside>
       </div>
@@ -168,4 +189,12 @@ function initials(value) {
     .join("")
     .slice(0, 2)
     .toUpperCase();
+}
+
+function PortraitContent({ imageSrc, name }) {
+  if (imageSrc) {
+    return <img src={imageSrc} alt={name} className="chat-character-image" />;
+  }
+
+  return initials(name);
 }
